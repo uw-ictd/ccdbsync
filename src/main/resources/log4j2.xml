@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" packages="org.apache.logging.log4j.core,io.sentry.log4j2">
+<Appenders>
+    <Console name="Console" target="SYSTEM_OUT">
+        <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+    </Console>
+    <File name="File" fileName="${sys:datedLogFile}">
+        <PatternLayout pattern="%d %p %C{1.} [%t] %m%n"/>
+    </File>
+    <Console name="Console" target="SYSTEM_OUT">
+        <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+    </Console>
+    <Sentry name="Sentry" dsn="https://53deb3a1623645cd9ae41e27d78813c8@o175243.ingest.sentry.io/5453719"/>
+</Appenders>
+<Loggers>
+    <Root level="info">
+        <AppenderRef ref="Sentry"/>
+        <AppenderRef ref="Console"/>
+        <AppenderRef ref="File"/>
+    </Root>
+</Loggers>
+</Configuration>
