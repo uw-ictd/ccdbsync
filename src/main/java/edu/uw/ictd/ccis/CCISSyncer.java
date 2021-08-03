@@ -15,7 +15,7 @@ import java.util.TimeZone;
 
 public class CCISSyncer {
 
-  static final String MS_SQL_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+  public static final String POSTGRESQL_DRIVER = "org.postgresql.Driver";
   private static final String DELETE_FROM_S = "DELETE FROM %s";
 
   private static final String INSERT_ROWS_ERROR_ROW_DATA_IS_NULL = "Insert rows error - rowData is null";
@@ -65,7 +65,7 @@ public class CCISSyncer {
     this.defaultTZ = defaultTZ;
     this.logger = logger;
 
-    Class.forName(MS_SQL_DRIVER);
+    Class.forName(POSTGRESQL_DRIVER);
 
     conn = DriverManager.getConnection(dbUrl, dbUsername,
         dbPassword);

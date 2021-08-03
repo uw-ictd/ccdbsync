@@ -24,7 +24,6 @@ import java.text.ParseException;
 import java.util.*;
 
 public class ColdChainVizSyncUtil {
-  static final String MS_SQL_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
   static final String TABLES = "tables";
   static final String ROWS = "rows";
 

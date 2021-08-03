@@ -18,6 +18,7 @@ import java.sql.*;
 import java.util.*;
 
 import static edu.uw.ictd.ColdChainVizSyncUtil.*;
+import static edu.uw.ictd.ccis.CCISSyncer.POSTGRESQL_DRIVER;
 
 public class ColdChainSyncVizUtilTest {
 
@@ -54,7 +55,7 @@ public class ColdChainSyncVizUtilTest {
           configSettings.getDbPassword(), configSettings.getDefaultTZ(), ccUtil.getLogger());
 
       // Setup the sql driver
-      Class.forName(MS_SQL_DRIVER);
+      Class.forName(POSTGRESQL_DRIVER);
       Connection conn = DriverManager.getConnection(configSettings.getDbUrl(),
           configSettings.getDbUsername(), configSettings.getDbPassword());
 
@@ -98,7 +99,7 @@ public class ColdChainSyncVizUtilTest {
           configSettings.getDbPassword(), configSettings.getDefaultTZ(), ccUtil.getLogger());
 
       // Setup the sql driver
-      Class.forName(MS_SQL_DRIVER);
+      Class.forName(POSTGRESQL_DRIVER);
       Connection conn = DriverManager.getConnection(configSettings.getDbUrl(),
           configSettings.getDbUsername(), configSettings.getDbPassword());
 
@@ -179,7 +180,7 @@ public class ColdChainSyncVizUtilTest {
           configSettings.getDbPassword(), configSettings.getDefaultTZ(), ccUtil.getLogger());
 
       // Setup the sql driver
-      Class.forName(MS_SQL_DRIVER);
+      Class.forName(POSTGRESQL_DRIVER);
       Connection conn = DriverManager.getConnection(configSettings.getDbUrl(),
           configSettings.getDbUsername(), configSettings.getDbPassword());
 
@@ -233,7 +234,7 @@ public class ColdChainSyncVizUtilTest {
       ccUtil.sync();
 
       // Setup the sql driver
-      Class.forName(MS_SQL_DRIVER);
+      Class.forName(POSTGRESQL_DRIVER);
       ConfigSettings configSettings = ccUtil.getConfigSettings();
       Connection conn = DriverManager.getConnection(configSettings.getDbUrl(),
           configSettings.getDbUsername(), configSettings.getDbPassword());

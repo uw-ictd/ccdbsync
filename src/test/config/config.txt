@@ -1,4 +1,4 @@
-jdbc:sqlserver://[serverName[\instanceName][:portNumber]][;property=value[;property=value]]
+jdbc:postgresql://[host]:[port]/[database]
 [databaseUsername]
 [databasePassword]
 [syncEndpointURL]

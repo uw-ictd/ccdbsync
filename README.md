@@ -2,8 +2,7 @@
 
 ## Project Description:
 
-The purpose of this project is to sync a SQL database with data from an [ODK-X Sync-Endpoint]
-[1].  
+The purpose of this project is to sync a SQL database with data from an [ODK-X Sync-Endpoint][1].  
 
 ## Setting Up the Development Environment:
 1.  Install [git][2]
@@ -48,7 +47,7 @@ The `config.txt` file contains the credentials for the SQL database and ODK-X Sy
 well as other configuration values.  The order of values is below:
 
 ```
-jdbc:sqlserver://[serverName[\instanceName][:portNumber]][;property=value[;property=value]]
+jdbc:postgresql://host:port/database
 databaseUsername
 databasePassword
 syncEndpointURL
@@ -62,8 +61,8 @@ logTimeZone
 
 Example configuration values could be:
 ```
-SQL Server Name: db.windows. net 
-SQL Server Port: 1433
+SQL Server Name: db.windows.net 
+SQL Server Port: 5432
 SQL Database Name: testdb
 SQL Username: testuser
 SQL Password: testpass
@@ -78,7 +77,7 @@ Log Time Zone: America/Los_Angeles
 The corresponding config.txt would be:
 
 ```
-jdbc:sqlserver://db.windows.net:1433;database=testdb;
+jdbc:postgresql://db.windows.net:5432/testdb
 testuser
 testpass
 https://testserver.com/odktables
@@ -146,7 +145,7 @@ docker build -t data-sync .
 
 To run the container
 ```
-docker run -p1433:1433 data-sync
+docker run -p5432:5432 data-sync
 ```
 
 The `entrypoint.sh` script has the details of the cron job.  
