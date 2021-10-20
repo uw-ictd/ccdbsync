@@ -17,7 +17,6 @@ import org.opendatakit.sync.client.SyncClient;
 
 import java.io.*;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -26,11 +25,13 @@ import java.util.*;
 public class ColdChainVizSyncUtil {
   static final String TABLES = "tables";
   static final String ROWS = "rows";
+  static final String PARTITION = "partition";
 
   private static final String EXCEPTION_WHILE_SYNCING = "Exception while syncing";
   private static final String ERROR_WHILE_CLOSING_SQL_OR_WINK_CLIENT_CONNECTION = "Error while "
       + "closing SQL or Wink Client connection";
   private static final String PROCESSING_AGGREGATE_TABLE_S = "Processing Aggregate table %s";
+  private static final String ADDING_TO_AGGREGATE_TABLE_S = "Adding to Aggregate table %s";
   private static final String INSERT_INTO_S_IN_REMOTE_DB = "Insert into %s in remote DB";
   private static final String DELETION_COUNT_D = "Deletion count: %d";
   private static final String NO_DATA_IN_S = "No data in %s";
@@ -50,6 +51,7 @@ public class ColdChainVizSyncUtil {
   private final ArrayList<TablesToConvert> tablesToConvertList = new ArrayList<>();
   private final ArrayList<String> blackListedTablesList = new ArrayList<>();
   private final Map<String, Map<String, DatabaseColumn>> dbColLookup = new HashMap<>();
+  private final ArrayList<String> singleSyncTablesList = new ArrayList<>();
 
   private ConfigSettings configSettings = null;
 
@@ -60,12 +62,13 @@ public class ColdChainVizSyncUtil {
   private String configFileName = "config.txt";
   private String blackListedTablesFileName = "blacklisted_tables.txt";
   private String tablesToConvertFileName = "tables_to_convert.csv";
+  private String singleSyncTablesFileName = "single_sync_tables.txt";
 
   Map<String, String> tableIdToSchemaETagMap = new HashMap<>();
   List<String> tableIdList = new ArrayList<>();
 
   CCISSyncer ccisSyncer;
-  SyncEndpointDownloader syncDownloader;
+  List<SyncEndpointDownloader> syncEndpointDownloaders = new ArrayList<>();
   String configDirPath;
 
   ColdChainVizSyncUtil() {
@@ -90,9 +93,9 @@ public class ColdChainVizSyncUtil {
     ccisSyncer = new CCISSyncer(dbUrl, dbUsername, dbPassword, defaultTZ, logger);
   }
 
-  void initSyncDownloader(String aggUrl, String username, String password, String appId)
+  SyncEndpointDownloader initSyncDownloader(String aggUrl, String username, String password, String appId)
       throws MalformedURLException {
-    syncDownloader = new SyncEndpointDownloader(aggUrl, username, password, appId);
+    return new SyncEndpointDownloader(aggUrl, username, password, appId);
   }
 
   void initFilesInConfigDir() throws IOException {
@@ -106,6 +109,9 @@ public class ColdChainVizSyncUtil {
 
     String blacklistedFilePath = configPathToUse + File.separator + blackListedTablesFileName;
     initBlacklistedTables(blacklistedFilePath);
+
+    String singleSyncTablesFilePath = configPathToUse + File.separator + singleSyncTablesFileName;
+    initSingleSyncList(singleSyncTablesFilePath);
 
     String tablesToConvertFilePath = configPathToUse + File.separator + tablesToConvertFileName;
     initTableValues(tablesToConvertFilePath);
@@ -138,19 +144,29 @@ public class ColdChainVizSyncUtil {
       System.setProperty("datedLogDir", getDatedCsvDir());
       initLogger(getDatedCsvDir());
 
-      URL url = new URL(configSettings.getAggUrl());
-
       // Setup the sql driver
       logger.info(CONNECTING_TO_DATABASE);
       initCCISSyncer(configSettings.getDbUrl(), configSettings.getDbUsername(),
           configSettings.getDbPassword(), configSettings.getDefaultTZ(), logger);
 
-      initSyncDownloader(configSettings.getAggUrl(), configSettings.getAggUsername(),
-          configSettings.getAggPassword(), configSettings.getAppId());
+      for (AggregateUrlSettings aggregateUrlSettings : configSettings.getAggSettings()) {
+        SyncEndpointDownloader syncEndpointDownloader =
+            initSyncDownloader(aggregateUrlSettings.getAggUrl(),
+                aggregateUrlSettings.getAggUsername(),
+                aggregateUrlSettings.getAggPassword(), aggregateUrlSettings.getAppId());
+        syncEndpointDownloaders.add(syncEndpointDownloader);
+      }
+
 
       // Download sync-endpoint data into csv files
       // in directory with logging
-      createCSVFilesForAllData(getDatedCsvDir());
+      int partitionNumber = 0;
+      for (SyncEndpointDownloader syncEndpointDownloader : syncEndpointDownloaders) {
+        String partitionDir = getDatedCsvDir() + File.separator + PARTITION + partitionNumber +
+            File.separator;
+        createCSVFilesForAllData(syncEndpointDownloader, partitionDir);
+        partitionNumber++;
+      }
 
       // Loop through each table - delete table and then upload data
       moveODKDataToColdChainVizDB();
@@ -187,10 +203,18 @@ public class ColdChainVizSyncUtil {
   }
 
   void initBlacklistedTables(String pathToBlacklistedFile) throws FileNotFoundException {
-    Scanner lineScan = new Scanner(new File(pathToBlacklistedFile));
+    initConfigList(pathToBlacklistedFile, blackListedTablesList);
+  }
+
+  void initSingleSyncList(String pathToSingleSyncList) throws FileNotFoundException {
+    initConfigList(pathToSingleSyncList, singleSyncTablesList);
+  }
+
+  void initConfigList(String pathToFile, List<String> configList) throws FileNotFoundException {
+    Scanner lineScan = new Scanner(new File(pathToFile));
 
     while (lineScan.hasNext()) {
-      blackListedTablesList.add(lineScan.next());
+      configList.add(lineScan.next());
     }
 
     lineScan.close();
@@ -255,37 +279,56 @@ public class ColdChainVizSyncUtil {
         row.getRowETag(), logger);
   }
 
-  private void createCSVFilesForAllData(String dirToUse) throws Exception {
+  private void createCSVFilesForAllData(SyncEndpointDownloader syncDownloader, String dirToUse)
+      throws Exception {
 
     // Get all the tables that need to be moved to Aggregate
     tableIdList = syncDownloader.getTableIds();
 
     for (String tableId : tableIdList) {
       String csvFilePath = dirToUse + tableId;
-      SuitcaseRunner.runSuitcaseDownloadCommand(configSettings.getAggUrl(), csvFilePath,
-          configSettings.getAppId(), tableId, configSettings.getAggUsername(),
-          configSettings.getAggPassword(), logger);
+      SuitcaseRunner.runSuitcaseDownloadCommand(syncDownloader.getUrl(), csvFilePath,
+          syncDownloader.getAppId(), tableId, syncDownloader.getUser(),
+          syncDownloader.getPassword(), logger);
     }
   }
 
   private void moveODKDataToColdChainVizDB() throws Exception {
+    Map<String, Boolean> aggTableProc = new HashMap<>();
+
     // Get all the tables that need to be moved to Aggregate
-    tableIdToSchemaETagMap = syncDownloader.getTablesAndSchemaETags();
+    for (SyncEndpointDownloader syncEndpointDownloader : syncEndpointDownloaders) {
+      tableIdToSchemaETagMap = syncEndpointDownloader.getTablesAndSchemaETags();
 
-    for (String tableId : tableIdList) {
-      String schemaETag = tableIdToSchemaETagMap.get(tableId);
+      for (String tableId : tableIdList) {
+        String schemaETag = tableIdToSchemaETagMap.get(tableId);
 
-      // Check if the table is black listed
-      boolean blackListedTable = isTableBlackListed(tableId);
+        // Check if the table is black listed
+        boolean blackListedTable = isTableBlackListed(tableId);
 
-      // Only process the table if it is not black listed
-      if (!blackListedTable) {
-        processTable(tableId, schemaETag);
+        // Check if the table is only supposed to be synced to one server
+        boolean singleSyncTable = isSingleSyncTable(tableId);
+
+        // Only process the table if it is not black listed
+        if (!blackListedTable) {
+          // process table if it has not been processed already
+          if (aggTableProc.getOrDefault(tableId, false) == false) {
+            processTable(syncEndpointDownloader, tableId, schemaETag);
+            aggTableProc.put(tableId, true);
+          } else {
+            // add to table if it has been processed already and is not supposed to be
+            // synced only once
+            if (!singleSyncTable) {
+              addDataToTable(syncEndpointDownloader, tableId, schemaETag);
+            }
+          }
+        }
       }
     }
   }
 
-  public void processTable(String tableId, String schemaETag)
+  public void processTable(SyncEndpointDownloader syncEndpointDownloader, String tableId,
+      String schemaETag)
       throws Exception {
 
     logger.info(String.format(PROCESSING_AGGREGATE_TABLE_S, tableId));
@@ -295,6 +338,14 @@ public class ColdChainVizSyncUtil {
     int delCnt = deleteAllRowsInColdChainTable(destTable);
     logger.info(String.format(DELETION_COUNT_D, delCnt));
 
+    addDataToTable(syncEndpointDownloader, tableId, schemaETag);
+  }
+
+  public void addDataToTable(SyncEndpointDownloader syncEndpointDownloader, String tableId,
+      String schemaETag) throws Exception {
+    logger.info(String.format(ADDING_TO_AGGREGATE_TABLE_S, tableId));
+
+    String destTable = tableNameMap.getOrDefault(tableId, null);
     // Insert rows using fetchLimit
     String fetchLimit = "1000";
     String cursor = null;
@@ -302,7 +353,7 @@ public class ColdChainVizSyncUtil {
     boolean hasMoreResults;
 
     do {
-      RowResourceList rowResourceList = syncDownloader.getRows(tableId, schemaETag, cursor,
+      RowResourceList rowResourceList = syncEndpointDownloader.getRows(tableId, schemaETag, cursor,
           fetchLimit);
 
       hasMoreResults = rowResourceList.isHasMoreResults();
@@ -321,15 +372,20 @@ public class ColdChainVizSyncUtil {
   }
 
   boolean isTableBlackListed(String tableId) {
-    boolean tableIsBlackListed = false;
+    return isStringInList(tableId, blackListedTablesList);
+  }
 
-    for (String s : blackListedTablesList) {
-      if (tableId.equals(s)) {
-        tableIsBlackListed = true;
+  boolean isSingleSyncTable(String tableId) {
+    return isStringInList(tableId, singleSyncTablesList);
+  }
+
+  boolean isStringInList(String string, List<String> list) {
+    for (String s: list) {
+      if (s.equals(string)) {
+        return true;
       }
     }
-
-    return tableIsBlackListed;
+    return false;
   }
 
   int deleteAllRowsInColdChainTable(String tableId) throws SQLException {

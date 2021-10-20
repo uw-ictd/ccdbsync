@@ -1,0 +1,2 @@
+geographic_regions
+refrigerator_types

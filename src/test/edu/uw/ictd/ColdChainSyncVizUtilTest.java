@@ -19,6 +19,8 @@ import java.util.*;
 
 import static edu.uw.ictd.ColdChainVizSyncUtil.*;
 import static edu.uw.ictd.ccis.CCISSyncer.POSTGRESQL_DRIVER;
+import static org.opendatakit.sync.client.SyncClient.HAS_MORE_RESULTS_JSON;
+import static org.opendatakit.sync.client.SyncClient.WEB_SAFE_RESUME_CURSOR_JSON;
 
 public class ColdChainSyncVizUtilTest {
 
@@ -239,22 +241,42 @@ public class ColdChainSyncVizUtilTest {
       Connection conn = DriverManager.getConnection(configSettings.getDbUrl(),
           configSettings.getDbUsername(), configSettings.getDbPassword());
 
-      // Setup sync client
-      URL url = new URL(configSettings.getAggUrl());
-      SyncClient sc = new SyncClient();
-      sc.init(url.getHost(), configSettings.getAggUsername(), configSettings.getAggPassword());
+      // Setup sync clients
+      int numOfAggUrls = configSettings.getNumOfAggUrls();
+      List<SyncClient> scList = new ArrayList<>();
+      for (int i = 0; i < configSettings.getNumOfAggUrls(); i++) {
+        URL url = new URL(configSettings.getAggSettings().get(i).getAggUrl());
+        SyncClient sc = new SyncClient();
+        sc.init(url.getHost(), configSettings.getAggSettings().get(i).getAggUsername(),
+            configSettings.getAggSettings().get(i).getAggPassword());
+        scList.add(sc);
+      }
 
-      // Get all the tables that need to be moved to Aggregate
-      JSONObject tablesJSONObj = sc.getTables(configSettings.getAggUrl(), configSettings.getAppId());
-      JSONArray tablesJSONArray = tablesJSONObj.getJSONArray(TABLES);
+      // Get all the tables that need to be moved to Aggregate from the first SyncClient
+      JSONObject firstTablesJSONObj =
+          scList.get(0).getTables(configSettings.getAggSettings().get(0).getAggUrl(),
+          configSettings.getAggSettings().get(0).getAppId());
+      JSONArray firstTablesJSONArray = firstTablesJSONObj.getJSONArray(TABLES);
 
       String tableId;
       String schemaETag;
       boolean blackListedTable = false;
-      for (int i = 0; i < tablesJSONArray.size(); i++) {
-        JSONObject tableJSONObj = tablesJSONArray.getJSONObject(i);
+
+      // Initialize singleSync map
+      Map<String, Boolean> singleSyncTableIdToSyncStatus = new HashMap<>();
+      for (int i = 0; i < firstTablesJSONArray.size(); i++) {
+        JSONObject tableJSONObj = firstTablesJSONArray.getJSONObject(i);
         tableId = tableJSONObj.getString(SyncClient.TABLE_ID_JSON);
-        schemaETag = tableJSONObj.getString(SyncClient.SCHEMA_ETAG_JSON);
+
+        if (ccUtil.isSingleSyncTable(tableId)) {
+          singleSyncTableIdToSyncStatus.put(tableId, false);
+        }
+      }
+
+      for (int i = 0; i < firstTablesJSONArray.size(); i++) {
+        JSONObject tableJSONObj = firstTablesJSONArray.getJSONObject(i);
+        tableId = tableJSONObj.getString(SyncClient.TABLE_ID_JSON);
+
         int dbCount = 0, serverCount = 0;
 
         // Check if the table is black listed
@@ -270,15 +292,41 @@ public class ColdChainSyncVizUtilTest {
           rs.next();
           dbCount = rs.getInt("ROW_COUNT");
 
-          JSONObject tableRows = sc.getRows(configSettings.getAggUrl(), configSettings.getAppId(),
-              tableId, schemaETag, null, null);
-
           serverCount = 0;
-          // Make sure that data ETag is not null
-          if (!tableRows.isNull(SyncClient.DATA_ETAG_JSON)) {
-            JSONArray rows = tableRows.getJSONArray(ROWS);
-            serverCount = rows.length();
+          for (int j = 0; j < numOfAggUrls; j++) {
+            // Skip processing this table if it has already been synced and
+            // is a single sync table
+            if (singleSyncTableIdToSyncStatus.containsKey(tableId)) {
+              if (singleSyncTableIdToSyncStatus.get(tableId)) {
+                continue;
+              }
+            }
+            // Get the schemaETag
+            schemaETag = scList.get(j).getSchemaETagForTable(
+                configSettings.getAggSettings().get(j).getAggUrl(),
+                configSettings.getAggSettings().get(j).getAppId(),
+                tableId);
 
+            JSONObject tableRows = null;
+            String resumeCursor = null;
+            do {
+              tableRows =
+                  scList.get(j).getRows(configSettings.getAggSettings().get(j).getAggUrl(),
+                      configSettings.getAggSettings().get(j).getAppId(),
+                      tableId, schemaETag, resumeCursor, null);
+
+              // Make sure that data ETag is not null
+              if (!tableRows.isNull(SyncClient.DATA_ETAG_JSON)) {
+                JSONArray rows = tableRows.getJSONArray(ROWS);
+                serverCount += rows.length();
+              }
+
+              resumeCursor = tableRows.optString(WEB_SAFE_RESUME_CURSOR_JSON);
+            } while (tableRows.getBoolean(HAS_MORE_RESULTS_JSON));
+
+            if (singleSyncTableIdToSyncStatus.containsKey(tableId)) {
+              singleSyncTableIdToSyncStatus.put(tableId, true);
+            }
           }
         }
 

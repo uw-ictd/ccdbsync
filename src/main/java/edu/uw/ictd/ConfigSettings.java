@@ -7,19 +7,18 @@ import java.util.List;
 import java.util.Scanner;
 
 public class ConfigSettings {
-  private static final int CONFIG_SIZE = 10;
+  private static final int CONFIG_SIZE = 11;
+  private static final int NUM_OF_AGG_URL_LINE = 6;
 
   // Variables for Config File Reader
-  private String aggUrl = null;
-  private String appId = null;
-  private String aggUsername = null;
-  private String aggPassword = null;
   private String dbUsername = null;
   private String dbPassword = null;
   private String dbUrl = null;
   private String csvDir = null;
   private String defaultTZ = null;
   private String logTZ = null;
+  private Integer numOfAggUrls = 0;
+  private ArrayList<AggregateUrlSettings> aggSettings = new ArrayList<>();
 
   public ConfigSettings() {
   }
@@ -35,68 +34,48 @@ public class ConfigSettings {
 
     lineScan.close();
 
-    if (userConfig.size() == CONFIG_SIZE) {
+    if (userConfig.size() >= CONFIG_SIZE) {
       this.dbUrl = userConfig.get(0);
       this.dbUsername = userConfig.get(1);
       this.dbPassword = userConfig.get(2);
-      this.aggUrl = userConfig.get(3);
-      this.appId = userConfig.get(4);
-      this.aggUsername = userConfig.get(5);
-      this.aggPassword = userConfig.get(6);
-      this.csvDir = userConfig.get(7);
-      this.defaultTZ = userConfig.get(8);
-      this.logTZ = userConfig.get(9);
+      this.csvDir = userConfig.get(3);
+      this.defaultTZ = userConfig.get(4);
+      this.logTZ = userConfig.get(5);
+      this.numOfAggUrls = Integer.parseInt(userConfig.get(NUM_OF_AGG_URL_LINE));
+
+      for (int i = 0; i < this.numOfAggUrls; i++) {
+        this.aggSettings.add(new AggregateUrlSettings(
+            userConfig.get(NUM_OF_AGG_URL_LINE + AggregateUrlSettings.NUM_OF_SETTINGS * i + 1),
+            userConfig.get(NUM_OF_AGG_URL_LINE + AggregateUrlSettings.NUM_OF_SETTINGS * i + 2),
+            userConfig.get(NUM_OF_AGG_URL_LINE + AggregateUrlSettings.NUM_OF_SETTINGS * i + 3),
+            userConfig.get(NUM_OF_AGG_URL_LINE + AggregateUrlSettings.NUM_OF_SETTINGS * i + 4)));
+      }
+
     } else {
       throw new IllegalArgumentException(
           "Config file " + filePath + " does not have the right number of parameters");
     }
   }
 
-  public ConfigSettings(String aggUrl, String appId, String aggUsername, String aggPassword,
-      String dbUsername, String dbPassword, String dbUrl, String csvDir, String defaultTZ,
-      String logTZ) {
-    this.aggUrl = aggUrl;
-    this.appId = appId;
-    this.aggUsername = aggUsername;
-    this.aggPassword = aggPassword;
+  public ConfigSettings(String dbUsername, String dbPassword, String dbUrl, String csvDir,
+      String defaultTZ, String logTZ, Integer numOfAggUrls,
+      ArrayList<AggregateUrlSettings> aggSettings) {
     this.dbUsername = dbUsername;
     this.dbPassword = dbPassword;
     this.dbUrl = dbUrl;
     this.csvDir = csvDir;
     this.defaultTZ = defaultTZ;
     this.logTZ = logTZ;
+    this.numOfAggUrls = numOfAggUrls;
+    this.aggSettings = aggSettings;
   }
 
-  public String getAggUrl() {
-    return aggUrl;
+  public static int getConfigSize() {
+    return CONFIG_SIZE;
   }
 
-  public void setAggUrl(String aggUrl) {
-    this.aggUrl = aggUrl;
-  }
-
-  public String getAppId() {
-    return appId;
-  }
-
-  public void setAppId(String appId) {
-    this.appId = appId;
-  }
-
-  public String getAggUsername() {
-    return aggUsername;
-  }
-
-  public void setAggUsername(String aggUsername) {
-    this.aggUsername = aggUsername;
-  }
-
-  public String getAggPassword() {
-    return aggPassword;
-  }
-
-  public void setAggPassword(String aggPassword) {
-    this.aggPassword = aggPassword;
+  public static int getNumOfAggUrlLine() {
+    return NUM_OF_AGG_URL_LINE;
   }
 
   public String getDbUsername() {
@@ -147,6 +126,22 @@ public class ConfigSettings {
     this.logTZ = logTZ;
   }
 
+  public Integer getNumOfAggUrls() {
+    return numOfAggUrls;
+  }
+
+  public void setNumOfAggUrls(Integer numOfAggUrls) {
+    this.numOfAggUrls = numOfAggUrls;
+  }
+
+  public ArrayList<AggregateUrlSettings> getAggSettings() {
+    return aggSettings;
+  }
+
+  public void setAggSettings(ArrayList<AggregateUrlSettings> aggSettings) {
+    this.aggSettings = aggSettings;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o)
@@ -156,49 +151,33 @@ public class ConfigSettings {
 
     ConfigSettings that = (ConfigSettings) o;
 
-    if (getAggUrl() != null ? !getAggUrl().equals(that.getAggUrl()) : that.getAggUrl() != null)
+    if (dbUsername != null ? !dbUsername.equals(that.dbUsername) : that.dbUsername != null)
       return false;
-    if (getAppId() != null ? !getAppId().equals(that.getAppId()) : that.getAppId() != null)
+    if (dbPassword != null ? !dbPassword.equals(that.dbPassword) : that.dbPassword != null)
       return false;
-    if (getAggUsername() != null ?
-        !getAggUsername().equals(that.getAggUsername()) :
-        that.getAggUsername() != null)
+    if (dbUrl != null ? !dbUrl.equals(that.dbUrl) : that.dbUrl != null)
       return false;
-    if (getAggPassword() != null ?
-        !getAggPassword().equals(that.getAggPassword()) :
-        that.getAggPassword() != null)
+    if (csvDir != null ? !csvDir.equals(that.csvDir) : that.csvDir != null)
       return false;
-    if (getDbUsername() != null ?
-        !getDbUsername().equals(that.getDbUsername()) :
-        that.getDbUsername() != null)
+    if (defaultTZ != null ? !defaultTZ.equals(that.defaultTZ) : that.defaultTZ != null)
       return false;
-    if (getDbPassword() != null ?
-        !getDbPassword().equals(that.getDbPassword()) :
-        that.getDbPassword() != null)
+    if (logTZ != null ? !logTZ.equals(that.logTZ) : that.logTZ != null)
       return false;
-    if (getDbUrl() != null ? !getDbUrl().equals(that.getDbUrl()) : that.getDbUrl() != null)
+    if (numOfAggUrls != null ? !numOfAggUrls.equals(that.numOfAggUrls) : that.numOfAggUrls != null)
       return false;
-    if (getCsvDir() != null ? !getCsvDir().equals(that.getCsvDir()) : that.getCsvDir() != null)
-      return false;
-    if (getDefaultTZ() != null ?
-        !getDefaultTZ().equals(that.getDefaultTZ()) :
-        that.getDefaultTZ() != null)
-      return false;
-    return getLogTZ() != null ? getLogTZ().equals(that.getLogTZ()) : that.getLogTZ() == null;
+    return aggSettings != null ? aggSettings.equals(that.aggSettings) : that.aggSettings == null;
   }
 
   @Override
   public int hashCode() {
-    int result = getAggUrl() != null ? getAggUrl().hashCode() : 0;
-    result = 31 * result + (getAppId() != null ? getAppId().hashCode() : 0);
-    result = 31 * result + (getAggUsername() != null ? getAggUsername().hashCode() : 0);
-    result = 31 * result + (getAggPassword() != null ? getAggPassword().hashCode() : 0);
-    result = 31 * result + (getDbUsername() != null ? getDbUsername().hashCode() : 0);
-    result = 31 * result + (getDbPassword() != null ? getDbPassword().hashCode() : 0);
-    result = 31 * result + (getDbUrl() != null ? getDbUrl().hashCode() : 0);
-    result = 31 * result + (getCsvDir() != null ? getCsvDir().hashCode() : 0);
-    result = 31 * result + (getDefaultTZ() != null ? getDefaultTZ().hashCode() : 0);
-    result = 31 * result + (getLogTZ() != null ? getLogTZ().hashCode() : 0);
+    int result = dbUsername != null ? dbUsername.hashCode() : 0;
+    result = 31 * result + (dbPassword != null ? dbPassword.hashCode() : 0);
+    result = 31 * result + (dbUrl != null ? dbUrl.hashCode() : 0);
+    result = 31 * result + (csvDir != null ? csvDir.hashCode() : 0);
+    result = 31 * result + (defaultTZ != null ? defaultTZ.hashCode() : 0);
+    result = 31 * result + (logTZ != null ? logTZ.hashCode() : 0);
+    result = 31 * result + (numOfAggUrls != null ? numOfAggUrls.hashCode() : 0);
+    result = 31 * result + (aggSettings != null ? aggSettings.hashCode() : 0);
     return result;
   }
 }

@@ -27,19 +27,31 @@ java -jar target/ccdbsync-*-SNAPSHOT-jar-with-dependencies.jar
 ## Config Values
 The following files must be in the `config` directory.
 1.  [blacklisted_tables.txt](#blacklisted_tablestxt)
-2.  [config.txt](#configtxt)
-3.  [tables_to_convert.csv](#tables_to_convertcsv)
+2.  [single_sync_tables.txt](#single_sync_tablestxt)  
+3.  [config.txt](#configtxt)
+4.  [tables_to_convert.csv](#tables_to_convertcsv)
 
 ### blacklisted_tables.txt
 The `blacklisted_tables.txt` file can be used to ignore tables on the ODK-X Sync-Endpoint server to
 sync to the SQL database.  If none of the tables should be ignored, this file should be empty.  To 
 ignore a table, put the ODK-X table name on one line of the 
-file.  For example, to ignore tables refrigerators and refrigerator_temperature_data the content of 
-blacklisted_tables.txt should be:
+file.  For example, to ignore tables refrigerators and refrigerator_temperature_data the content of
+`blacklisted_tables.txt` should be:
 
 ```
 refrigerators
 refrigerator_temperature_data
+```
+
+### single_sync_tablestxt
+The `single_sync_tables.txt` file can be used declare which tables should only sync data from the 
+first ODK-X Sync-Endpoint defined in `config.txt`.  If a table should only be synced once with, 
+put the ODK-X table name on one line fo the file.  For example, to sync geographic_regions and 
+refrigerator_types only once the content of `single_sync_tables.txt` should be:
+
+```
+geographic_regions
+refrigerator_types
 ```
 
 ### config.txt
@@ -50,13 +62,14 @@ well as other configuration values.  The order of values is below:
 jdbc:postgresql://host:port/database
 databaseUsername
 databasePassword
+logsAndDataDir
+defaultTimeZone
+logTimeZone
+1
 syncEndpointURL
 syncEndpointAppId
 syncEndpointUsername
 syncEndpointPassword
-logsAndDataDir
-defaultTimeZone
-logTimeZone
 ```
 
 Example configuration values could be:
@@ -66,13 +79,18 @@ SQL Server Port: 5432
 SQL Database Name: testdb
 SQL Username: testuser
 SQL Password: testpass
+Directory to Store Logs and Data: logsAndData
+Default Time Zone: America/Los_Angeles
+Log Time Zone: America/Los_Angeles
+Number of ODK-X Sync-Endpoints: 2
 ODK-X Sync-Endpoint URL: https://testserver.com/odktables
 ODK-X Sync-Endpoint Username: testODKUser
 ODK-X Sync-Endpoint Password: testODKPass
 ODK-X Sync-Endpoint AppID: default
-Directory to Store Logs and Data: logsAndData
-Default Time Zone: America/Los_Angeles
-Log Time Zone: America/Los_Angeles
+ODK-X Sync-Endpoint 2 URL: https://testserver2.com/odktables
+ODK-X Sync-Endpoint 2 Username: testODKUser
+ODK-X Sync-Endpoint 2 Password: testODKPass
+ODK-X Sync-Endpoint 2 AppID: default
 ```
 The corresponding config.txt would be:
 
@@ -80,13 +98,18 @@ The corresponding config.txt would be:
 jdbc:postgresql://db.windows.net:5432/testdb
 testuser
 testpass
+logsAndData
+America/Los_Angeles
+America/Los_Angeles
+2
 https://testserver.com/odktables
 default
 testODKUser
 testODKPass
-logsAndData
-America/Los_Angeles
-America/Los_Angeles
+https://testserver2.com/odktables
+default
+testODKUser
+testODKPass
 ```
 
 NOTE: `odktables` is required at the end of the ODK-X Sync-Endpoint URL.

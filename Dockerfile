@@ -9,11 +9,13 @@ RUN cd /ccdbsync && \
 	
 FROM ubuntu:18.04 
 
+COPY cleanupLogs.sh /cleanupLogs.sh
 COPY syncCCDB.sh /syncCCDB.sh
 COPY --from=compiler /ccdbsync.jar /ccdbsync.jar
 COPY entrypoint.sh /entrypoint.sh
 COPY config /config
 
+RUN chmod +x /cleanupLogs.sh
 RUN chmod +x /syncCCDB.sh
 RUN chmod +x /ccdbsync.jar
 RUN chmod +x /entrypoint.sh
@@ -38,6 +40,7 @@ RUN apt-get install -y dos2unix;
 RUN apt-get clean;
 
 #Convert scripts to unix
+RUN dos2unix /cleanupLogs.sh
 RUN dos2unix /syncCCDB.sh
 RUN dos2unix /entrypoint.sh
 

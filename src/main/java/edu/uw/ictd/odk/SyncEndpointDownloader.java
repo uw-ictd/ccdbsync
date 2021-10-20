@@ -36,6 +36,22 @@ public class SyncEndpointDownloader {
     sc.init(url.getHost(), aggUsername, aggPassword);
   }
 
+  public String getUrl() {
+    return url;
+  }
+
+  public String getUser() {
+    return user;
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
+  public String getAppId() {
+    return appId;
+  }
+
   public List<String> getTableIds() throws IOException, JSONException {
     List<String> tableList = new ArrayList<>();
 

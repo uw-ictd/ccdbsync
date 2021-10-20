@@ -22,37 +22,42 @@ if [[ -n "${POSTGRES_PASSWORD}" ]]; then
   sed -i '3d' config/config.txt
   sed -i "3 i ${POSTGRES_PASSWORD}" config/config.txt
 fi
-if [[ -n "${ODK_SERVER}" ]]; then
-  sed -i '4d' config/config.txt
-  sed -i "4 i ${ODK_SERVER}" config/config.txt
-fi
-if [[ -n "${ODK_APP_ID}" ]]; then
-  sed -i '5d' config/config.txt
-  sed -i "5 i ${ODK_APP_ID}" config/config.txt
-fi
-if [[ -n "${ODK_USERNAME}" ]]; then
-  sed -i '6d' config/config.txt
-  sed -i "6 i ${ODK_USERNAME}" config/config.txt
-fi
-if [[ -n "${ODK_PASSWORD}" ]]; then
-  sed -i '7d' config/config.txt
-  sed -i "7 i ${ODK_PASSWORD}" config/config.txt
-fi
 if [[ -n "${LOG_DATA_DIR}" ]]; then
-  sed -i '8d' config/config.txt
-  sed -i "8 i ${LOG_DATA_DIR}" config/config.txt
+  sed -i '4d' config/config.txt
+  sed -i "4 i ${LOG_DATA_DIR}" config/config.txt
 fi
 if [[ -n "${DEFAULT_TIMEZONE}" ]]; then
-  sed -i '9d' config/config.txt
-  sed -i "9 i ${DEFAULT_TIMEZONE}" config/config.txt
+  sed -i '5d' config/config.txt
+  sed -i "5 i ${DEFAULT_TIMEZONE}" config/config.txt
 fi
 if [[ -n "${LOG_TIMEZONE}" ]]; then
+  sed -i '6d' config/config.txt
+  sed -i "6 i ${LOG_TIMEZONE}" config/config.txt
+fi
+if [[ -n "${NUM_OF_ODK_SERVERS}" ]]; then
+  sed -i '7d' config/config.txt
+  sed -i "7 i ${NUM_OF_ODK_SERVERS}" config/config.txt
+fi
+if [[ -n "${ODK_SERVER}" ]]; then
+  sed -i '8d' config/config.txt
+  sed -i "8 i ${ODK_SERVER}" config/config.txt
+fi
+if [[ -n "${ODK_APP_ID}" ]]; then
+  sed -i '9d' config/config.txt
+  sed -i "9 i ${ODK_APP_ID}" config/config.txt
+fi
+if [[ -n "${ODK_USERNAME}" ]]; then
   sed -i '10d' config/config.txt
-  sed -i "9 a ${LOG_TIMEZONE}" config/config.txt
+  sed -i "10 i ${ODK_USERNAME}" config/config.txt
+fi
+if [[ -n "${ODK_PASSWORD}" ]]; then
+  sed -i '11d' config/config.txt
+  sed -i "10 a ${ODK_PASSWORD}" config/config.txt
 fi
 
 
 echo "00 * * * * /syncCCDB.sh
+05 00 * * * /cleanupLogs.sh
 # Don't remove the empty line at the end of this file. It is required to run the cron job" > scheduler.txt
 
 crontab scheduler.txt
