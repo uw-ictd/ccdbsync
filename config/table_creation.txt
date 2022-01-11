@@ -1,3 +1,10 @@
+/*
+ * This script is out of date, superceded by the one in the dashboard repository:
+ *   https://github.com/uw-ictd/ccis-dashboard/blob/main/docker-database/sql/schema.sql
+ * That schema.sql file is used for our deployment dashboard databases (the
+ * targets of ccdbsync), as defined here:
+ *   https://github.com/uw-ictd/ccis-dashboard/blob/main/docker-database/deploymentDB/Dockerfile
+ */
 create table cold_room_maintenance_logs_odkx
 (
     rowETag                                       varchar,
