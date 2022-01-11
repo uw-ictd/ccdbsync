@@ -275,6 +275,7 @@ create table refrigerator_temperature_data_odkx
     number_of_low_alarms_30                          varchar,
     refrigerator_id                                  varchar,
     reporting_period                                 varchar,
+    ft_serial_number                                 varchar(255),
     id_refrigerator_temperature_data                 varchar
 )
 
