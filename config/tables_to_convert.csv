@@ -261,7 +261,6 @@ refrigerators,refrigerators_odkx,year_installed,year_installed,
 refrigerators,refrigerators_odkx,year_procured,year_procured,
 refrigerators,refrigerators_odkx,_id,id_refrigerators,
 refrigerators,refrigerators_odkx,selfUri,selfUri,
-ft_daily_temp_records,ft_daily_temp_records_odkx,rowETag,rowETag
 ft_daily_temp_records,ft_daily_temp_records_odkx,_row_etag,rowETag,
 ft_daily_temp_records,ft_daily_temp_records_odkx,_data_etag_at_modification,dataETagAtModification,
 ft_daily_temp_records,ft_daily_temp_records_odkx,_deleted,deleted,
